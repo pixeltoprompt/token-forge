@@ -7,9 +7,11 @@ import { TokenEditor } from "./components/TokenEditor";
 import { applyAllFixes, applyFix, compliance, lintJsx, type Violation } from "./lib/lint";
 import { generateComponent } from "./lib/generate";
 import { clonePreset, type TokenSet } from "./lib/tokens";
+import { pickSample } from "./lib/samples";
 import "./styles/app.css";
 
 const SHELF_KEY = "forge:shelf";
+const THEME_KEY = "forge:theme";
 const EXAMPLES = [
   "a pricing card with a plan name, price, three features and a call to action",
   "a newsletter signup with an email field and a frequency toggle",
@@ -23,6 +25,8 @@ interface Saved {
   tokenId: string;
 }
 
+type Theme = "light" | "dark";
+
 const loadShelf = (): Saved[] => {
   try {
     const raw = localStorage.getItem(SHELF_KEY);
@@ -31,6 +35,10 @@ const loadShelf = (): Saved[] => {
     return [];
   }
 };
+
+// The inline script in index.html already set this attribute before paint,
+// so read it back rather than re-deriving from localStorage/matchMedia here.
+const loadTheme = (): Theme => (document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light");
 
 export default function App() {
   const [tokens, setTokens] = useState<TokenSet>(() => clonePreset("press"));
@@ -41,6 +49,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"tokens" | "code">("tokens");
   const [shelf, setShelf] = useState<Saved[]>(loadShelf);
+  const [isSample, setIsSample] = useState(false);
+  const [theme, setTheme] = useState<Theme>(loadTheme);
 
   const violations = useMemo(() => (code ? lintJsx(code, tokens) : []), [code, tokens]);
   const score = useMemo(
@@ -56,6 +66,15 @@ export default function App() {
     }
   }, [shelf]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* storage full or disabled — theme just won't persist across reloads */
+    }
+  }, [theme]);
+
   const run = useCallback(
     async (instruction: string, iterate: boolean) => {
       if (!instruction.trim() || busy) return;
@@ -69,6 +88,7 @@ export default function App() {
           previous: iterate ? code : undefined,
         });
         setCode(next);
+        setIsSample(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -77,6 +97,13 @@ export default function App() {
     },
     [apiKey, busy, code, tokens],
   );
+
+  const loadSample = useCallback((instruction: string) => {
+    const sample = pickSample(instruction || "pricing card");
+    setCode(sample.code);
+    setIsSample(true);
+    setError(null);
+  }, []);
 
   const fix = (violation: Violation) => setCode((current) => applyFix(current, violation));
   const fixAll = () => setCode((current) => applyAllFixes(current, lintJsx(current, tokens)));
@@ -110,6 +137,15 @@ export default function App() {
           onChange={(e) => setApiKey(e.target.value)}
           aria-label="Anthropic API key"
         />
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? "☾" : "☀"}
+        </button>
       </header>
 
       <div className="composer">
@@ -135,6 +171,9 @@ export default function App() {
           <button className="btn" disabled={!code} onClick={save}>
             save
           </button>
+          <button className="btn ghost" onClick={() => loadSample(prompt)} title="No API key needed">
+            sample
+          </button>
         </div>
       </div>
 
@@ -148,7 +187,14 @@ export default function App() {
         </ul>
       )}
 
-      {error && <p className="alert" role="alert">{error}</p>}
+      {error && (
+        <p className="alert" role="alert">
+          {error}
+          <button className="alert-alt" onClick={() => loadSample(prompt)}>
+            load a sample component instead
+          </button>
+        </p>
+      )}
 
       <main className="grid">
         <section className="pane pane-left">
@@ -180,6 +226,11 @@ export default function App() {
         </section>
 
         <section className="pane pane-stage">
+          {isSample && (
+            <p className="sample-note">
+              Canned sample — not generated. Everything else on this page is live.
+            </p>
+          )}
           <Preview code={code} tokens={tokens} />
         </section>
 

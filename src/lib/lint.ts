@@ -34,7 +34,12 @@ export interface Violation {
 
 /* ------------------------------------------------------ property routing -- */
 
-const SPACE_PROPS = /^(padding|margin|gap|inset|top|right|bottom|left|width|height|min-width|min-height|max-width|max-height|row-gap|column-gap|translate)/;
+// Deliberately excludes width/height/min-/max-. A card's 260px width is layout, not
+// spacing, and there is no width scale to resolve it against — the "nearest" spacing
+// token to 260px is 52px, so auto-fix would collapse the component to a fifth of its
+// size while reporting 100% compliance. A linter whose fix breaks the artefact is
+// worse than no linter.
+const SPACE_PROPS = /^(padding|margin|gap|inset|top|right|bottom|left|row-gap|column-gap)/;
 const RADIUS_PROPS = /border-radius$|^border-radius/;
 const FONT_SIZE_PROPS = /^font-size$|^line-height$/;
 const WEIGHT_PROPS = /^font-weight$/;
