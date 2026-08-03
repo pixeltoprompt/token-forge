@@ -5,7 +5,7 @@ Generate React components that are *inside* a design system rather than next to 
 **[Live demo →](https://token-forge-eta.vercel.app/)**
 
 Describe a component. The model receives your token set as a hard constraint, returns
-JSX, and a linter verifies every value traces back to a token — flagging anything that
+JSX, and a linter verifies every value traces back to a token flagging anything that
 doesn't and offering the nearest legal replacement.
 
 Then switch themes. The component re-themes with no regeneration, because the values
@@ -29,6 +29,8 @@ Paste an Anthropic API key in the header, or deploy with `ANTHROPIC_API_KEY` set
 serverless function in `api/` handles it so visitors don't need one.
 
 ## Notes
+Bring Your Own API Key (BYOK)
+Have an Anthropic API key? Use it directly in the extension settings.
 
 Generated components execute in an iframe with `sandbox="allow-scripts"` and no
 `allow-same-origin`, so model-authored code can't reach this document, its storage or
