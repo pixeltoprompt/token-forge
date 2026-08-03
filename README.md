@@ -2,7 +2,7 @@
 
 Generate React components that are *inside* a design system rather than next to one.
 
-**[Live demo →](https://your-url.vercel.app)**
+**[Live demo →](https://token-forge-eta.vercel.app/)**
 
 Describe a component. The model receives your token set as a hard constraint, returns
 JSX, and a linter verifies every value traces back to a token — flagging anything that
